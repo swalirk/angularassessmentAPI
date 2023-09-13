@@ -16,24 +16,7 @@ namespace assessmentApi.Controllers
             this.tableInterface = tableInterface;
 
         }
-        //[HttpGet("{id}")]
-
-        //public IActionResult GetTableById(Guid id)
-        //{
-        //    try
-        //    {
-        //        var vehicleType = tableInterface.GetTableById(id);
-
-
-        //        return Ok(vehicleType);
-
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //}
+       
         [HttpGet]
         [Route("getAllTableNames")]
         public IActionResult GetAllTableNames()
@@ -51,36 +34,7 @@ namespace assessmentApi.Controllers
 
 
 
-        //[HttpPost]
-        //public async Task<IActionResult> AddTable([FromBody] Aotable table)
-        //{
-
-        //    try
-        //    {
-        //        if (table != null)
-        //        {
-        //            table.Id = new Guid();
-        //            var newTable = await tableInterface.AddTable(table);
-        //            if (newTable != null)
-        //            {
-        //                return Ok(newTable);
-        //            }
-        //            else
-        //            {
-        //                return BadRequest("Table Cannot be null");
-        //            }
-        //        }
-        //        else
-        //        {
-        //            return BadRequest();
-        //        }
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //}
+       
 
 
         
