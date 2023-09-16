@@ -28,31 +28,56 @@ namespace assessmentApi.services
                 return null;
             }
         }
-        public bool IsExists(Guid id)
-        {
-            return dbContext.Forms.Any(c => c.Id == id);
-        }
-        public bool DeleteForm(Guid id)
-        {
-            var form = dbContext.Forms.Find(id);
-            dbContext.Remove(form);
-            return dbContext.SaveChanges() > 0 ? true : false;
-        }
-        public ICollection<Form> GetAllForms()
-        {
-            return dbContext.Forms.ToList();
+        //public bool IsExists(Guid id)
+        //{
+        //    return dbContext.Forms.Any(c => c.Id == id);
+        //}
 
+        public async Task DeleteForm(Guid id)
+        {
+            var formToDelete = await dbContext.Forms.FirstOrDefaultAsync(f => f.Id == id);
+
+            if (formToDelete != null)
+            {
+                dbContext.Forms.Remove(formToDelete);
+                await dbContext.SaveChangesAsync();
+            }
         }
+
+       
+    public async Task<ICollection<Form>> GetAllForms()
+        {
+            return await dbContext.Forms.ToListAsync();
+        }
+       
+
+      
+
+        public async Task<Form> GetAllFormsById(Guid id)
+        {
+            return await dbContext.Forms.FirstOrDefaultAsync(f => f.Id == id);
+        }
+
+
+
+        public async Task<bool> IsExists(Guid id)
+        {
+            return await dbContext.Forms.AnyAsync(f => f.Id == id);
+        }
+
         public async Task<bool> UpdateForm(Guid id, Form form)
         {
-            dbContext.Forms.Entry(form).State = EntityState.Modified;
-            await dbContext.SaveChangesAsync();
-            return true;
-        }
+            var existingForm = await dbContext.Forms.FirstOrDefaultAsync(f => f.Id == id);
 
-        public Form GetAllFormsById(Guid id)
-        {
-            return dbContext.Forms.FirstOrDefault(f => f.Id == id);
+            if (existingForm == null)
+            {
+                return false; 
+            }
+            dbContext.Entry(existingForm).CurrentValues.SetValues(form);
+
+            await dbContext.SaveChangesAsync();
+
+            return true; 
         }
     }
 }

@@ -6,10 +6,10 @@ namespace assessmentApi.Models;
 
 public partial class Aotable
 {
-    //public Aotable()
-    //{
-    //    this.Forms = new HashSet<Form>();
-    //}
+    public Aotable()
+    {
+        this.Forms = new HashSet<Form>();
+    }
     public Guid Id { get; set; }
 
     public string Name { get; set; } = null!;
@@ -35,6 +35,6 @@ public partial class Aotable
     public int Premium { get; set; }
 
     // public virtual ICollection<Form> Forms { get; set; } = new List<Form>();
-   [JsonIgnore]
+   
     public virtual ICollection<Form> Forms { get; }
 }

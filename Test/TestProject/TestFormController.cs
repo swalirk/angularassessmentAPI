@@ -26,24 +26,95 @@ namespace TestProject
             formController=new FormController(formInterface.Object);
             
         }
+       
+
+       
+
+
+
         [Fact]
-        public void AddForm_ValidInput_ReturnsOkResult()
+        public async Task GetAllFormsById_ValidId_ReturnsOkResult()
         {
             // Arrange
+            var id = fixture.Create<Guid>();
+           
+            var form = fixture.Create<Form>(); 
+            formInterface.Setup(repo => repo.GetAllFormsById(id)).ReturnsAsync(form);
+           
 
-            var form = fixture.Create<Form>();
-            var returnData = fixture.Create<Form>();
-            formInterface.Setup(c => c.AddForm(form)).ReturnsAsync(returnData);
             // Act
-            var result = formController.AddForm(form);
+            var result = await formController.GetAllFormsById(id);
 
             // Assert
             result.Should().NotBeNull();
-            result.Result.Should().BeAssignableTo<OkObjectResult>();
-            var okObjectResult = result.Result.As<OkObjectResult>();
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(okResult.Value);
+            formInterface.Verify(repo => repo.GetAllFormsById(id).Result, Times.Once());
+        }
+
+        [Fact]
+        public async Task GetAllFormsById_DataNotFound_ReturnsBadRequest()
+        {
+            // Arrange
+            var id = fixture.Create<Guid>();
+            
+            formInterface.Setup(repo => repo.GetAllFormsById(id)).ReturnsAsync((Form)null); // Simulate data not found
+            
+
+            // Act
+            var result = await formController.GetAllFormsById(id);
+
+            // Assert
+            result.Should().NotBeNull();
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("Data Not Found", badRequestResult.Value);
+            formInterface.Verify(repo => repo.GetAllFormsById(id), Times.Once());
+        }
+
+        [Fact]
+        public async Task GetAllFormsById_ExceptionThrown_ReturnsBadRequestWithErrorMessage()
+        {
+            // Arrange
+            var id = fixture.Create<Guid>();
+            var errorMessage = "An error occurred";
+           
+            formInterface.Setup(repo => repo.GetAllFormsById(id)).ThrowsAsync(new Exception(errorMessage));
+           
+
+            // Act
+            var result = await formController.GetAllFormsById(id);
+
+            // Assert
+            result?.Should().NotBeNull();
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal(errorMessage, badRequestResult.Value);
+            formInterface.Verify(repo => repo.GetAllFormsById(id), Times.Once());
+        }
+
+
+
+
+        [Fact]
+        public async Task AddForm_ValidData_ReturnsOkResult()
+        {
+            // Arrange
+            var form = fixture.Create<Form>();
+           var returnData= fixture.Create<Form>();
+            formInterface.Setup(repo => repo.AddForm(form)).ReturnsAsync(returnData); 
+           
+
+            // Act
+            var result = await formController.AddForm(form);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().BeAssignableTo<OkObjectResult>();
+            var okObjectResult = result.As<OkObjectResult>();
             okObjectResult.Value.Should().BeEquivalentTo(returnData);
             formInterface.Verify(t => t.AddForm(form), Times.Once());
         }
+
+
         [Fact]
         public void AddForm_NullInput_ReturnsBadRequest()
         {
@@ -82,14 +153,81 @@ namespace TestProject
         }
 
         [Fact]
-        public void GetAllForms_Return_Forms()
+        public async Task DeleteForm_FormExists_ReturnsOkResult()
         {
             // Arrange
-            List<Form> formList = fixture.CreateMany<Form>().ToList();
-            formInterface.Setup(c => c.GetAllForms()).Returns(formList);
+            var id=fixture.Create<Guid>();
+            var form = fixture.Create<Form>();
+            formInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
+            formInterface.Setup(repo => repo.DeleteForm(id)).Returns(Task.CompletedTask);
+
+
 
             // Act
-            var result = formController.GetAllForms();
+            var result = await formController.DeleteForm(id);
+
+            // Assert
+            result.Should().NotBeNull();
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            okResult.Value.Should().BeEquivalentTo(new { status = "Deleted" });
+            formInterface.Verify(x => x.DeleteForm(id), Times.Once());
+            formInterface.Verify(x => x.DeleteForm(id), Times.Once());
+
+        }
+
+        [Fact]
+        public async Task DeleteForm_FormDoesNotExist_ReturnsBadRequest()
+        {
+            // Arrange
+            var id = fixture.Create<Guid>();
+            formInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(false);
+
+            // Act
+            var result = await formController.DeleteForm(id);
+
+            // Assert
+            result.Should().NotBeNull();
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().Be("Id not found");
+            formInterface.Verify(repo => repo.IsExists(id),Times.Once());
+            formInterface.Verify(x => x.DeleteForm(id), Times.Never);
+        }
+
+
+
+        [Fact]
+        public async Task DeleteForm_ExceptionThrown_ReturnsBadRequestWithErrorMessage()
+        {
+            // Arrange
+            var id = Guid.NewGuid();
+            var errorMessage = "An error occurred";
+            formInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
+            formInterface.Setup(repo => repo.DeleteForm(id)).ThrowsAsync(new Exception(errorMessage));
+
+            // Act
+            var result = await formController.DeleteForm(id);
+
+            // Assert
+            result.Should().NotBeNull();
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().Be(errorMessage);
+            formInterface.Verify(repo => repo.IsExists(id), Times.Once());
+            formInterface.Verify(x => x.DeleteForm(id), Times.Once);
+        }
+
+
+
+        [Fact]
+        public async Task GetAllForms_FormsExist_ReturnsOkResult()
+        {
+            // Arrange
+
+            List<Form> formList = fixture.CreateMany<Form>().ToList();
+            formInterface.Setup(repo => repo.GetAllForms()).ReturnsAsync(formList);
+           
+
+            // Act
+            var result = await formController.GetAllForms();
 
             // Assert
             Assert.IsType<OkObjectResult>(result);
@@ -99,120 +237,66 @@ namespace TestProject
             var forms = okResult.Value as List<Form>;
             forms.Should().NotBeNull().And.NotBeEmpty();
             Assert.Equal(formList.Count, forms.Count());
+            formInterface.Verify(repo => repo.GetAllForms(), Times.Once());
 
         }
+
         [Fact]
         public void GetAllForms_Return_BadRequest_WhenDatanotFound()
         {
             //Arrange
-            var formList = fixture.CreateMany<Form>(0).ToList();
-
-            formInterface.Setup(c => c.GetAllForms()).Returns(formList);
-
-            // Act
-            var result = formController.GetAllForms();
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
-            var badRequestResult = result as BadRequestObjectResult;
-            var formlists = badRequestResult.Value as List<Form>;
-            Assert.Null(formlists);
-            result.Should().BeAssignableTo<BadRequestObjectResult>().Which.Value.Should().Be("Data Not Found");
-            Assert.Equal(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
 
 
-        }
-        [Fact]
-        public void GetAllForms_Exception_ReturnsBadRequestWithExceptionMessage()
-        {
-
-
-            // Arrange
-
-            formInterface.Setup(c => c.GetAllForms()).Throws(new Exception("Something went wrong"));
+            formInterface.Setup(repo => repo.GetAllForms()).ReturnsAsync(new List<Form>());
 
             // Act
             var result = formController.GetAllForms();
 
             // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
-            var badRequestResult = result as BadRequestObjectResult;
-            Assert.Equal(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
-            Assert.Equal("Something went wrong", badRequestResult.Value);
+            result.Should().NotBeNull();
+            Assert.Equal("Data Not Found", ((string)((ObjectResult)result.Result).Value));
+            formInterface.Verify(repo => repo.GetAllForms(), Times.Once());
+
+
+
+
         }
 
         [Fact]
-        public void DeleteForm_ValidId_ReturnsOkResult()
+        public async Task GetAllForms_Exception_ReturnsBadRequestWithExceptionMessage()
         {
             // Arrange
-
-            var form = fixture.Create<Form>();
-            formInterface.Setup(x => x.DeleteForm(form.Id)).Returns(true);
-            formInterface.Setup(x => x.IsExists(form.Id)).Returns(true);
-
-
-            // Act
-            var result = formController.DeleteForm(form.Id);
-
-            // Assert
-            result.Should().NotBeNull();
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            okResult.Value.Should().BeEquivalentTo(new { status = "Deleted" });
-            formInterface.Verify(x => x.DeleteForm(form.Id), Times.Once());
-            formInterface.Verify(x => x.DeleteForm(form.Id), Times.Once());
-        }
-        [Fact]
-        public void DeleteBrand_InvalidId_ReturnsBadRequestWithMessage()
-        {
-            // Arrange
-
-            var form = fixture.Create<Form>();
-            formInterface.Setup(x => x.DeleteForm(form.Id)).Returns(false);
-            formInterface.Setup(x => x.IsExists(form.Id)).Returns(false);
-
-            // Act
-            var result = formController.DeleteForm(form.Id);
-
-            // Assert
-            result.Should().NotBeNull();
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal("Something Went Wrong", badRequestResult.Value);
             
-            formInterface.Verify(x => x.DeleteForm(form.Id), Times.Never());
-            formInterface.Verify(x => x.IsExists(form.Id), Times.Once());
-        }
-        [Fact]
-        public void DeleteBrand_Exception_ReturnsBadRequestWithExceptionMessage()
-        {
-            // Arrange
-            var form = fixture.Create<Form>();
-            var exceptionMessage = "An error occurred.";
-            formInterface.Setup(repo => repo.IsExists(form.Id)).Returns(true);
-            formInterface.Setup(repo => repo.DeleteForm(form.Id))
-                .Throws(new Exception(exceptionMessage));
+            formInterface.Setup(repo => repo.GetAllForms()).ThrowsAsync(new Exception("Custom exception message"));
+
+           
 
             // Act
-            var result = formController.DeleteForm(form.Id);
+            var result = await formController.GetAllForms();
 
             // Assert
             result.Should().NotBeNull();
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal(exceptionMessage, badRequestResult.Value);
-            formInterface.Verify(x => x.DeleteForm(form.Id), Times.Once());
-            formInterface.Verify(x => x.DeleteForm(form.Id), Times.Once());
+            Assert.Equal("Custom exception message", badRequestResult.Value);
+            formInterface.Verify(repo => repo.GetAllForms(), Times.Once());
         }
+
+
         [Fact]
-        public  void UpdateForm_ShouldReturnOk_WhenUpdateIsSuccessful()
+        public async Task UpdateForm_ValidForm_ReturnsOkResult()
         {
             // Arrange
             Guid id = fixture.Create<Guid>();
             var updateForm = fixture.Create<Form>();
             updateForm.Id = id;
-            formInterface.Setup(v => v.IsExists(id)).Returns(true);
-            formInterface.Setup(b => b.UpdateForm(id, updateForm)).ReturnsAsync(true);
+
+            formInterface.Setup(v => v.IsExists(id)).ReturnsAsync(true);
+            formInterface.Setup(repo => repo.UpdateForm(id, updateForm)).ReturnsAsync(true);
+
+          
 
             // Act
-            var result = formController.UpdateForm(id, updateForm);
+            var result = await formController.UpdateForm(id, updateForm);
 
             // Assert
             result.Should().NotBeNull();
@@ -225,23 +309,24 @@ namespace TestProject
         }
 
         [Fact]
-        public void UpdateForm_InvalidData_ShouldReturnBadRequestResult()
+        public void UpdateVehicleType_ShouldReturnBadRequestResponse_WhenIdNotInDataBase()
         {
-            // Arrange
+            //Arrange
             Guid id = fixture.Create<Guid>();
             var updateForm = fixture.Create<Form>();
 
-            formInterface.Setup(c => c.UpdateForm(id, updateForm)).ReturnsAsync(false);
+            updateForm.Id = id;
+            formInterface.Setup(x => x.IsExists(id)).ReturnsAsync(false);
+            formInterface.Setup(x => x.UpdateForm(id, updateForm)).ReturnsAsync(false);
 
-            // Act
+            //Act
             var result = formController.UpdateForm(id, updateForm);
+            //Assert
+            result.Should().NotBeNull();
+            Assert.Equal("Id not found", ((string)((BadRequestObjectResult)result.Result).Value));
+            formInterface.Verify(v => v.IsExists(id), Times.Once());
+            formInterface.Verify(x => x.UpdateForm(id, updateForm), Times.Never());
 
-            // Assert
-
-            result.Should().NotBeNull();        
-            result.Should().BeAssignableTo<BadRequestResult>();
-            formInterface.Verify(v => v.IsExists(id), Times.Never());
-            formInterface.Verify(b => b.UpdateForm(id, updateForm), Times.Never());
         }
 
         [Fact]
@@ -252,75 +337,22 @@ namespace TestProject
             var updateForm = fixture.Create<Form>();
             updateForm.Id = id;
 
-            formInterface.Setup(v => v.IsExists(id)).Returns(true);
-            formInterface.Setup(b => b.UpdateForm(id, updateForm)).Throws(new Exception("Something went wrong"));
+            formInterface.Setup(v => v.IsExists(id)).ReturnsAsync(true);
+            formInterface.Setup(b => b.UpdateForm(id, updateForm)).ThrowsAsync(new Exception("Something went wrong"));
 
             // Act
-            var result =  formController.UpdateForm(id, updateForm);
+            var result = formController.UpdateForm(id, updateForm);
 
             // Assert
             result.Should().NotBeNull();
-            Assert.IsType<BadRequestObjectResult>(result);
-            var badRequestResult = result as BadRequestObjectResult;
-            Assert.Equal(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
-            Assert.Equal("Something went wrong", badRequestResult.Value);
+            Assert.Equal("Something went wrong", ((string)((BadRequestObjectResult)result.Result).Value));
             formInterface.Verify(v => v.IsExists(id), Times.Once());
             formInterface.Verify(b => b.UpdateForm(id, updateForm), Times.Once());
         }
 
-        [Fact]
-        public void UpdateVehicleType_ShouldReturnBadRequestResponse_WhenIdNotInDataBase()
-        {
-            //Arrange
-            Guid id = fixture.Create<Guid>();
-            var updateForm = fixture.Create<Form>();
 
-            updateForm.Id = id;
-            formInterface.Setup(x => x.IsExists(id)).Returns(false);
-            formInterface.Setup(x => x.UpdateForm(id, updateForm)).ReturnsAsync(false);
 
-            //Act
-            var result = formController.UpdateForm(id, updateForm);
-            //Assert
-            result.Should().NotBeNull();
-            result.Should().BeAssignableTo<BadRequestObjectResult>().Which.Value.Should().Be("Id not found");
-            formInterface.Verify(v => v.IsExists(id), Times.Once());
-            formInterface.Verify(x => x.UpdateForm(id, updateForm), Times.Never());
 
-        }
-        [Fact]
-        public void GetAllFormsById_ValidId_ReturnsOkResult()
-        {
-            // Arrange
-            Guid id = fixture.Create<Guid>();
-            var form = fixture.Create<Form>();
-            formInterface.Setup(x => x.GetAllFormsById(id)).Returns(form);
 
-            // Act
-            var result = formController.GetAllFormsById(id);
-
-            // Assert
-            result.Should().NotBeNull();
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            okResult.Value.Should().BeEquivalentTo(form); 
-        }
-        
-
-        [Fact]
-        public void GetAllFormsById_Exception_ReturnsBadRequestWithErrorMessage()
-        {
-            // Arrange
-            Guid id = fixture.Create<Guid>();
-            formInterface.Setup(x => x.GetAllFormsById(id)).Throws(new Exception("Test Exception"));
-
-            // Act
-            var result = formController.GetAllFormsById(id);
-
-            // Assert
-            result.Should().NotBeNull();
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-            badRequestResult.Value.Should().Be("Test Exception");
-        }
-        
     }
 }

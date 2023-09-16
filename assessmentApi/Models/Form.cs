@@ -7,10 +7,8 @@ namespace assessmentApi.Models;
 
 public partial class Form
 {
-    public Form()
-    {
-        
-    }
+    
+    
     public Guid Id { get; set; }
 
     public Guid? RatebookId { get; set; }
@@ -96,7 +94,8 @@ public partial class Form
     public string? ScriptBefore { get; set; }
 
     public string? ScriptAfter { get; set; }
-  //[JsonIgnore]
+
+    //[JsonIgnore]
     public virtual Aotable? Table { get; set; }
 
 

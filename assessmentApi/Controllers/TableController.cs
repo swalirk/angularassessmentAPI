@@ -32,16 +32,33 @@ namespace assessmentApi.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+
+        public IActionResult GetTableById(Guid id)
+        {
+            try
+            {
+                var table = tableInterface.GetTableById(id);
 
 
-       
+                return Ok(table);
 
 
-        
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
 
-       
-        
+
+
+
+
+
+
+
 
     }
 }

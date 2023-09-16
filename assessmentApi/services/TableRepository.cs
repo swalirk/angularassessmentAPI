@@ -27,5 +27,9 @@ namespace assessmentApi.services
 
             return tableInfoList;
         }
+        public Aotable GetTableById(Guid id)
+        {
+            return dbContext.Aotables.FirstOrDefault(f => f.Id == id);
+        }
     }
 }
