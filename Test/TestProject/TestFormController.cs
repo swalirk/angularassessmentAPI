@@ -309,7 +309,7 @@ namespace TestProject
         }
 
         [Fact]
-        public void UpdateVehicleType_ShouldReturnBadRequestResponse_WhenIdNotInDataBase()
+        public void UpdateForm_ShouldReturnBadRequestResponse_WhenIdNotInDataBase()
         {
             //Arrange
             Guid id = fixture.Create<Guid>();
