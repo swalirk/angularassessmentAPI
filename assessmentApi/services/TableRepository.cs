@@ -1,4 +1,4 @@
-﻿using assessmentApi.Models;
+using assessmentApi.Models;
 using assessmentApi.services.interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,22 +14,33 @@ namespace assessmentApi.services
         }
 
         
-        public ICollection<TableInfo> GetTableNames()
+        
+
+
+
+
+        public async Task<ICollection<TableInfo>> GetTableNames()
         {
-            // Query the dbContext to get table names and IDs
-            var tableInfoList = dbContext.Aotables
+           
+            var tableInfoList = await dbContext.Aotables
                 .Select(table => new TableInfo
                 {
                     Id = table.Id,
                     Name = table.Name
                 })
-                .ToList();
+                .ToListAsync();
 
-            return tableInfoList;
+           
+            return tableInfoList.Count > 0 ? tableInfoList : null;
         }
-        public Aotable GetTableById(Guid id)
+       
+
+        public async Task<Aotable> GetTableById(Guid id)
         {
-            return dbContext.Aotables.FirstOrDefault(f => f.Id == id);
+            
+            var table = await dbContext.Aotables.FirstOrDefaultAsync(f => f.Id == id);
+            return table != null ? table : null;
         }
+
     }
 }
