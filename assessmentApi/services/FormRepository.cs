@@ -1,4 +1,4 @@
-﻿using assessmentApi.Models;
+using assessmentApi.Models;
 using assessmentApi.services.interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,10 +28,7 @@ namespace assessmentApi.services
                 return null;
             }
         }
-        //public bool IsExists(Guid id)
-        //{
-        //    return dbContext.Forms.Any(c => c.Id == id);
-        //}
+       
 
         public async Task DeleteForm(Guid id)
         {
@@ -47,7 +44,10 @@ namespace assessmentApi.services
        
     public async Task<ICollection<Form>> GetAllForms()
         {
-            return await dbContext.Forms.ToListAsync();
+          
+
+            var forms = await dbContext.Forms.ToListAsync();
+            return forms.Count > 0 ? forms : null;
         }
        
 
@@ -55,7 +55,9 @@ namespace assessmentApi.services
 
         public async Task<Form> GetAllFormsById(Guid id)
         {
-            return await dbContext.Forms.FirstOrDefaultAsync(f => f.Id == id);
+         
+            var form = await dbContext.Forms.FirstOrDefaultAsync(f => f.Id == id);
+            return form != null ? form : null;
         }
 
 
