@@ -1,4 +1,4 @@
-﻿using assessmentApi.Models;
+using assessmentApi.Models;
 using assessmentApi.services.interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,45 +17,52 @@ namespace assessmentApi.Controllers
 
         }
        
+
+
         [HttpGet]
         [Route("getAllTableNames")]
-        public IActionResult GetAllTableNames()
+        public async Task<IActionResult> GetAllTableNames()
         {
             try
             {
-                var names = tableInterface.GetTableNames();
-                return Ok(names);
+                var names = await tableInterface.GetTableNames(); 
+                if(names == null)
+                {
+                    return BadRequest("Data is Empty");
+                }
+                else
+                { return Ok(names); 
+                }
+               
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
+
+        
 
         [HttpGet("{id}")]
-
-        public IActionResult GetTableById(Guid id)
+        public async Task<IActionResult> GetTableById([FromRoute] Guid id)
         {
             try
             {
-                var table = tableInterface.GetTableById(id);
-
-
-                return Ok(table);
-
-
+                var table = await tableInterface.GetTableById(id);
+                if (table == null)
+                {
+                    return BadRequest("Data Not Found");
+                }
+                else
+                {
+                    return Ok(table);
+                }
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
-
-
-
-
-
-
 
 
 
